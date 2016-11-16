@@ -13,18 +13,6 @@ using namespace std;
 int main()
 {
 	string name = "E:\\Project\\Github\\adaboost VS iris\\iris.csv";
-	//fstream open(name,ios::in);
-	//if (!open.is_open()) {
-	//	cerr << "File is not opened" << endl;
-	//	return -1;
-	//}
-	//while (!open.eof()) {
-	//	const int length = 50;
-	//	char str[length];
-	//	open.getline(str, length);
-	//	cout << str << endl;
-	//}
-	//open.close();
 	csv_process_for_iris csv(name);
 	csv.Split();
 	csv._output();
