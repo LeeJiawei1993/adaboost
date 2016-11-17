@@ -1,6 +1,13 @@
 #include "stdafx.h"
 #include "irisprocess.h"
 
+
+void _linecpy(_line &_line2, _line &_line1) {
+	for (int i = 0; i < 4; i++) {
+		_line2._data[i] = _line1._data[i];
+	}
+	_line2._name = _line1._name;
+}
 csv_process_for_iris::csv_process_for_iris(string &name) {
 	csv_process_for_iris::_file.open(name, ios::in);
 	if (!_file.is_open()) {
@@ -49,7 +56,11 @@ int csv_process_for_iris::Split() {
 	}
 
 }
-void  csv_process_for_iris::_output() {
+int  csv_process_for_iris::_output() {
+	if (!csv_process_for_iris::FILE_READ_SUCCESS) {
+		cerr << "file is not read!" << endl;
+		return -1;
+	}
 	list<_line>::iterator it;
 	for (it=csv_process_for_iris::_data.begin(); it!=csv_process_for_iris::_data.end(); it++) {
 		for (int i = 0; i < 4; i++) {
@@ -57,4 +68,46 @@ void  csv_process_for_iris::_output() {
 		}
 		cout << it->_name << endl;
 	}
+	return 0;
+}
+int csv_process_for_iris::_dataset_establish() {
+	if (!csv_process_for_iris::FILE_READ_SUCCESS) {
+		cerr << "file is not read!" << endl;
+		return -1;
+	}
+	if (csv_process_for_iris::_data.size() < 150) {
+		cerr << "data seems not enough" << endl;
+		return -1;
+	}
+	int i = 0;
+	list<_line>::iterator it = csv_process_for_iris::_data.begin();
+	for (i = 0; it !=_data.end(); i++,it++) {
+		_line temp;
+		_linecpy(temp, *it);
+		if (i < 50 && i >=0) {
+			if (i < 40) {
+				temp._name.assign("1"); csv_process_for_iris::_train.push_back(temp);
+			}
+			else {
+				temp._name.assign("-1"); csv_process_for_iris::_test.push_back(temp);
+			}
+		}
+		else if (i >= 50 && i < 100) {
+			if (i < 90) {
+				temp._name.assign("2"); csv_process_for_iris::_train.push_back(temp);
+			}
+			else {
+				temp._name.assign("-1"); csv_process_for_iris::_test.push_back(temp);
+			}
+		}
+		else{
+			if (i < 140) {
+				temp._name.assign("3"); csv_process_for_iris::_train.push_back(temp);
+			}
+			else {
+				temp._name.assign("-1"); csv_process_for_iris::_test.push_back(temp);
+			}
+		}
+	}
+	return 0;
 }
