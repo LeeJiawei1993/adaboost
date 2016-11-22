@@ -14,9 +14,8 @@ int main()
 {
 	string name = "E:\\Project\\Github\\adaboost VS iris\\iris.csv";
 	csv_process_for_iris csv(name);
-	csv.Split();
-	csv._dataset_establish();
 	csv._output();
+	_Eigen ad(csv._get_a_list_of_element());
 	system("pause");
     return 0;
 }
