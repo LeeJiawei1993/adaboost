@@ -13,9 +13,9 @@ using namespace std;
 int main()
 {
 	string name = "E:\\Project\\Github\\adaboost VS iris\\iris.csv";
-	csv_process_for_iris csv(name);
-	csv._output();
-	_Eigen ad(csv._get_a_list_of_element());
+	adaboost_trainer csv(name);
+	//csv._output();
+	csv.show();
 	system("pause");
     return 0;
 }

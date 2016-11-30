@@ -211,14 +211,157 @@ void  _Eigen::save(void) {
 list<_singlelist> _Eigen::_output_data_processed(void) {
 	return _Eigen::data_on_use;
 }
+int _Eigen::get_size(void) {
+	return _Eigen::primitive_data.size();
+}
 
 adaboost_trainer::adaboost_trainer(string &name):csv_process_for_iris(name){
-	//_Eigen列表的建立以及权重初始化
+	//_Eigen列表的建立
 	int i = 1, j = _get_a_list_of_element().size();
-	list<float> initial_weight(j, 1.0 / j);
 	for (; i <= 4; i++) {
 		_Eigen temp(_get_a_list_of_element(i));
 		adaboost_trainer::eigen.push_back(temp);
-		adaboost_trainer::weights.push_back(initial_weight);
+	}
+	adaboost_trainer::CLASS_INITIALIZED = true;
+}
+//返回最大准确率的分界值
+//判断是否是这个标签的,返回一个数组List（真值表），表示是否属于这一类（1，-1）
+list<int > adaboost_trainer::is_the_label(_Eigen eg,string s) {
+	list<_singlelist> templist=eg._output_data_processed();
+	list<int> is_in_the_group;
+	list<_singlelist>::iterator it = templist.begin();
+	for (; it != templist.end(); it++) {
+		if (it->_name == s) {
+			is_in_the_group.push_back(1);
+		}
+		else {
+			is_in_the_group.push_back(-1);
+		}
+	}
+	return is_in_the_group;
+}
+//函数：权值更新
+void adaboost_trainer::renew(_Eigen eg,basic_classifier &cfer) {
+	list<float> unique;//储存各个唯一的值
+	list<_singlelist> lst = eg._output_data_processed();
+	for (list<_singlelist>::iterator it=lst.begin(); it != lst.end();it++) {
+		unique.push_back(it->_data);
+	}//提取数据
+	unique.unique();//让值不再重复
+	list<float> weight_sum;
+	for (list<float>::iterator it = unique.begin(); it != unique.end(); it++) {
+		list<int>::iterator it1 = cfer.is_the_label.begin();
+		list<float>::iterator it2 = cfer.weights.begin();//是非表，权重的正迭代器
+		float wsum = 0;
+		for (list<_singlelist>::iterator it3 = lst.begin(); it3 != lst.end(); it3++) {
+			if(it3->_data<=*it){
+				if (*it1 >0 ) {
+					wsum += *it2;
+				}
+			}
+			else {
+				if (it3->_data < 0) {
+					wsum += *it2;
+				}
+			}
+			it2++;
+			it1++;
+		}
+		weight_sum.push_back(wsum);
+	}
+	//这时应该得到一个正确率的list了，接下来取最大值以及相应的阈值
+	list<float>::iterator it = unique.begin();
+	float maxval = 0,thres = 0;//最大值(最大正确率)，阈值
+	int x = 0;//位置偏移量
+	for (list<float>::iterator p = weight_sum.begin();p!=weight_sum.end();p++) {
+		if (*p > (maxval+0.001)) {
+			maxval = *p;
+			x++;
+		}
+	}
+	for (; x >= 0; x--) {
+		it++;
+	}
+	thres = *it;
+	cfer.threshold.push_back(thres);//找到阈值并存入list
+	float coef = 0.5*log(maxval / (1 - maxval));//系数
+	cfer.coefficient.push_back(coef);//保存系数
+	//更新权值分布
+	//计算规范化因子
+	float Z = 0.0;
+	x = 0;
+	list<_singlelist>::iterator it3 = lst.begin();
+	list<int>::iterator it1 = cfer.is_the_label.begin();
+	for (list<float>::iterator it = cfer.weights.begin(); it != cfer.weights.end(); it++) {
+		float ygx = 0.0;
+		if (it3->_data <= thres) {
+			if (*it1 > 0)
+				ygx = 1;
+			else
+				ygx = -1;
+		}
+		else {
+			if (*it1 < 0)
+				ygx = 1;
+			else
+				ygx = -1;
+		}
+		float j = -1 * coef*ygx;
+		Z += (*it*exp(j));
+		if (it1 != cfer.is_the_label.end())	it1++;
+		if (it3 != lst.end())			it3++;
+		x++;
+	}
+	//更新权值分布
+	list<_singlelist>::iterator it4 = lst.begin();
+	list<int>::iterator it5 = cfer.is_the_label.begin();
+	for (list<float>::iterator it = cfer.weights.begin(); it != cfer.weights.end(); it++) {
+		float ygx = 0.0;
+		float val = 0.0;
+		if (it4->_data <= thres) {
+			if (*it5 > 0)
+				ygx = 1;
+			else
+				ygx = -1;
+		}
+		else {
+			if (*it5 < 0)
+				ygx = 1;
+			else
+				ygx = -1;
+		}
+		float j = -1 * coef*ygx;
+		*it = *it*exp(j) / Z;
+		if (it5 != cfer.is_the_label.end())	it5++;
+		if (it4 != lst.end())			it4++;
+	}
+}
+
+
+basic_classifier adaboost_trainer::single_train_t(_Eigen eg,int j,string s){
+	if (!adaboost_trainer::CLASS_INITIALIZED) {
+		cerr << "calss adaboost_trainer is not initialized!" << endl;
+	}
+	int Arraysize = eg.get_size();//长度
+	//权重初始化
+	basic_classifier clfer;
+	list<float> initial_weight(Arraysize,1.0/ Arraysize);
+	clfer.weights = initial_weight;
+	clfer.is_the_label = adaboost_trainer::is_the_label(eg, s);//是非表初始化
+	//接下来开始训练
+	for (int i = 0; i < j; i++) {
+		adaboost_trainer::renew(eg,clfer);
+	}
+	return clfer;
+}
+void adaboost_trainer::show(void) {
+	string s = "setosa";
+	basic_classifier c;
+	c=single_train_t(*eigen.begin(), 100, s);
+	cout << "Type name:"<<'\t'<<c._name << endl;
+	int i = 0;
+	for (list<float>::iterator it11 = c.coefficient.begin(); it11 != c.coefficient.end(); it11++) {
+		cout << "The " << i << " th coef:  " << *it11 << endl;
+		i++;
 	}
 }
